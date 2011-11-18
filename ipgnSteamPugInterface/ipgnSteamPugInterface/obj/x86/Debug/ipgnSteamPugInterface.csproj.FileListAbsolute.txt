@@ -1,0 +1,12 @@
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\bin\Debug\ipgnSteamPugInterface.exe.config
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\obj\x86\Debug\ResolveAssemblyReference.cache
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\obj\x86\Debug\ipgnSteamPugInterface.Properties.Resources.resources
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\obj\x86\Debug\ResGen.read.1.tlog
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\obj\x86\Debug\ResGen.write.1.tlog
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\bin\Debug\ipgnSteamPugInterface.exe
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\bin\Debug\ipgnSteamPugInterface.pdb
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\bin\Debug\Steam4NET.dll
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\bin\Debug\Steam4NET.pdb
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\obj\x86\Debug\ipgnSteamPugInterface.exe
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\obj\x86\Debug\ipgnSteamPugInterface.pdb
+E:\Git\various-ipgn\ipgnSteamPugInterface\ipgnSteamPugInterface\obj\x86\Debug\ipgnSteamPugInterface.mainWindow.resources
