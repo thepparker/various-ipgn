@@ -137,7 +137,7 @@
                 string currentMessage = currentState.receivedString.ToString();
                 Program.logToWindow("We have new data. Current message: " + currentMessage);
 
-                //If the amount of data read is >= the buffer size, we should check for more 
+                //If the amount of data read is >= the max buffer size, we should check for more 
                 if (currentState.bytesRead >= currentState.bufferSizeReadable)
                     ipgnPugInterfaceSocket.BeginReceive(currentState.dataReceived, 0, currentState.bufferSizeReadable,
                         SocketFlags.None, new AsyncCallback(receiveCallback), currentState);
