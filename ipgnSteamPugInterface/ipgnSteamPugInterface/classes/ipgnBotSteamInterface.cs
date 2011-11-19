@@ -24,10 +24,10 @@
     {
 
         //Statics to be used later
-        const string steamClientVersion = "SteamClient008";
-        const string clientEngineVersion = "CLIENTENGINE_INTERFACE_VERSION002";
-        const string steamFriendsEngineVersion = "SteamFriends002";
-        const string clientFriendsEngineVersion = "CLIENTFRIENDS_INTERFACE_VERSION001";
+        static string steamClientVersion = "SteamClient008";
+        static string clientEngineVersion = "CLIENTENGINE_INTERFACE_VERSION002";
+        static string steamFriendsEngineVersion = "SteamFriends002";
+        static string clientFriendsEngineVersion = "CLIENTFRIENDS_INTERFACE_VERSION001";
 
         //declarations for steam interface
         IClientEngine clientEngine;
@@ -197,7 +197,7 @@
 
             string uName = steamFriends.GetFriendPersonaName(stateChangeUId);
             //if (newState == EPersonaState.k_EPersonaStateOffline)
-                //person is afk, remove from pug
+                //person is offline, remove from pug
                 
             
             Program.logToWindow(uName + " changed state to " + newState);
@@ -206,7 +206,7 @@
         void friendAdded(FriendAdded_t addedFriend)
         {
             Program.logToWindow("New friend. Sending greeting");
-            Thread.Sleep(14000);
+            Thread.Sleep(14000); //waiting 14 seconds so we're sure this new fella is our friend
             CSteamID newFriendId = new CSteamID(addedFriend.m_ulSteamID);
             string newFriendName = steamFriends.GetFriendPersonaName(newFriendId);
 
@@ -230,7 +230,10 @@
             Program.logToWindow(steamFriends.GetFriendPersonaName(friendRequestId) + "requesting friendship. Added friend");
         }
 
-        void friendInvited(FriendInvited_t invitedFriend);
+        void friendInvited(FriendInvited_t invitedFriend)
+        {
+            return;
+        }
 
         ipgnBotChatParser ipgnBotParser = new ipgnBotChatParser();
 

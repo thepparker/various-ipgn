@@ -6,16 +6,28 @@
     using System.IO;
     using System.Threading;
     using System.Windows.Forms;
+    using System.Net;
     using Steam4NET;
 
     static class Program
     {
         public static ipgnBotSteamInterface ipgnSteamInterface;
+        public static ipgnBotPugInterface ipgnPugInterface;
         static mainWindow ipgnBotWindow;
+
+        private static string botIP = "210.50.4.5";
+        private static int botPort = 6004;
+        private static string botInterfacePassword = "3ngin33r";
 
         public static void logToWindow(string logString)
         {
             ipgnBotWindow.Print("[" + DateTime.Now + "] " + logString);
+            logToFile(logString);
+        }
+
+        public static void logToFile(string logMessage)
+        {
+            return;
         }
 
         [STAThread]
@@ -117,6 +129,30 @@
             {
                 logToWindow("Chances are steam is now running properly");
                 Thread.Sleep(10000);
+            }
+
+            ipgnPugInterface = new ipgnBotPugInterface();
+
+            if (ipgnPugInterface.connectToPugBot(new IPEndPoint(IPAddress.Parse(botIP), botPort), botInterfacePassword))
+            {
+                Program.logToWindow("We're inside the initial connection check");
+                int i = 0;
+                while (!ipgnPugInterface.connectedToBot)
+                {
+                    if (i > 20)
+                        break;
+                    Application.DoEvents();
+                    Thread.Sleep(10);
+                    i++;
+                }
+            }
+
+            if (!ipgnPugInterface.connectedToBot)
+            {
+                MessageBox.Show("No socket. Exiting");
+
+                Application.Exit();
+                return;
             }
 
             while (firstProcess)

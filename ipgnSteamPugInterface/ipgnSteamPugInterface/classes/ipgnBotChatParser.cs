@@ -37,7 +37,6 @@
                 logMessage = (this.SenderName + " (PRIVATE): " + chatMessage);
 
             Program.logToWindow(logMessage);
-            logToFile(logMessage);
 
             if (chatMessage == "!status")
                 this.replyMessage = "Status is: no deal";
@@ -47,11 +46,6 @@
             
             else
                 this.replyMessage = null;
-        }
-
-        private void logToFile(string logMessage)
-        {
-            return;
         }
     }
 }

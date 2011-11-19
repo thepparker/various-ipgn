@@ -61,6 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="classes\ipgnBotPugInterface.cs" />
     <Compile Include="classes\ipgnBotChatParser.cs" />
     <Compile Include="classes\VTable.cs" />
     <Compile Include="classes\ipgnBotSteamInterface.cs" />
