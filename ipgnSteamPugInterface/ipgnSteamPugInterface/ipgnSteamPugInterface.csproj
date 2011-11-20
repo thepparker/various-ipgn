@@ -61,11 +61,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="classes\settingsHandler.cs" />
-    <Compile Include="classes\ipgnBotPugInterface.cs" />
-    <Compile Include="classes\ipgnBotChatParser.cs" />
-    <Compile Include="classes\VTable.cs" />
-    <Compile Include="classes\ipgnBotSteamInterface.cs" />
+    <Compile Include="data\settingsHandler.cs" />
+    <Compile Include="interfaces\ipgnBotPugInterface.cs" />
+    <Compile Include="interfaces\ipgnBotChatParser.cs" />
+    <Compile Include="data\VTable.cs" />
+    <Compile Include="interfaces\ipgnBotSteamInterface.cs" />
     <Compile Include="UI\mainWindow.cs">
       <SubType>Form</SubType>
     </Compile>
