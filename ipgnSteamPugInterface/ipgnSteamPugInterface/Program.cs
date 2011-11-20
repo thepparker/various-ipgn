@@ -13,11 +13,13 @@
     {
         public static ipgnBotSteamInterface ipgnSteamInterface;
         public static ipgnBotPugInterface ipgnPugInterface;
+        public static settingsHandler ipgnBotSettings;
+
         static mainWindow ipgnBotWindow;
 
-        private static string botIP = "210.50.4.5";
-        private static int botPort = 6004;
-        private static string botInterfacePassword = "3ngin33r";
+        public static string botIP;
+        public static int botPort;
+        public static string botInterfacePassword;
 
         public static void logToWindow(string logString)
         {
@@ -127,11 +129,18 @@
 
             if (waited)
             {
-                logToWindow("Chances are steam is now running properly");
                 Thread.Sleep(10000);
+                logToWindow("Chances are steam is now running properly");
             }
 
+            //steam interface loaded, now try pug interface
+
             ipgnPugInterface = new ipgnBotPugInterface();
+            ipgnBotSettings = new settingsHandler();
+
+            botIP = ipgnBotSettings.botIP;
+            botPort = ipgnBotSettings.botPort;
+            botInterfacePassword = ipgnBotSettings.botPassword;
 
             if (ipgnPugInterface.connectToPugBot(new IPEndPoint(IPAddress.Parse(botIP), botPort), botInterfacePassword))
             {
