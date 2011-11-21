@@ -24,10 +24,10 @@
     {
 
         //Statics to be used later
-        static string steamClientVersion = "SteamClient008";
-        static string clientEngineVersion = "CLIENTENGINE_INTERFACE_VERSION002";
-        static string steamFriendsEngineVersion = "SteamFriends002";
-        static string clientFriendsEngineVersion = "CLIENTFRIENDS_INTERFACE_VERSION001";
+        private static string steamClientVersion = "SteamClient008";
+        private static string clientEngineVersion = "CLIENTENGINE_INTERFACE_VERSION002";
+        private static string steamFriendsEngineVersion = "SteamFriends002";
+        private static string clientFriendsEngineVersion = "CLIENTFRIENDS_INTERFACE_VERSION001";
 
         //declarations for steam interface
         IClientEngine clientEngine;
@@ -35,11 +35,14 @@
         ISteamClient008 steamClient;
         ISteamFriends002 steamFriends;
 
+        //class declarations
+        private ipgnBotPugInterface ipgnPugInterface;
+        private ipgnBotChatParser ipgnBotParser;
+
         //For our pipe and user checks
         int pipe;
         int user;
 
-        
         //Declerations for native functions
         NativeGetChatRoomEntry getChatMsg;
         NativeGetChatRoomName getChatName;
@@ -62,11 +65,14 @@
         Callback<FriendInvited_t> friendInvitedCallback; //debugging
         //we need to find a callback for when someone removes us from friends
 
+        //This is executed on object init, setting up our callbacks
         public ipgnBotSteamInterface()
         {
             groupChatEnabled = false;
 
             sessionInfo = new Dictionary<ulong, DateTime>();
+
+            ipgnBotParser = new ipgnBotChatParser();
 
             //Create the callbacks
             chatCallback = new Callback<FriendChatMsg_t>(chatMessage, FriendChatMsg_t.k_iCallback);
@@ -78,6 +84,11 @@
             friendInvitedCallback = new Callback<FriendInvited_t>(friendInvited, FriendInvited_t.k_iCallback);
         }
 
+        public void ipgnPugInterfacePass(ipgnBotPugInterface interfaceHandle)
+        {
+            ipgnPugInterface = interfaceHandle;
+            ipgnBotParser.ipgnPugInterfacePass(interfaceHandle);
+        }
 
         public bool GetSteamClient()
         {
@@ -190,6 +201,7 @@
             return groupStatusMsg ?? "Not enabled. (Requires restart)";
         }
 
+        //all interfaces are a go, now callbacks and other necessary functions
         void stateChange(PersonaStateChange_t perState)
         {
             CSteamID stateChangeUId = new CSteamID(perState.m_ulSteamID);
@@ -199,8 +211,8 @@
             //if (newState == EPersonaState.k_EPersonaStateOffline)
                 //person is offline, remove from pug
                 
-            
-            Program.logToWindow(uName + " changed state to " + newState);
+
+            Program.logToWindow(uName + " (" + perState.m_ulSteamID + "/" + stateChangeUId + ") changed state to " + newState);
         }
 
         void friendAdded(FriendAdded_t addedFriend)
@@ -210,9 +222,9 @@
             CSteamID newFriendId = new CSteamID(addedFriend.m_ulSteamID);
             string newFriendName = steamFriends.GetFriendPersonaName(newFriendId);
 
-            this.sendMessage(newFriendId, "Hello there, " + newFriendName + ". I am the steam chat half of the "
+            sendMessage(newFriendId, "Hello there, " + newFriendName + ". I am the steam chat half of the "
                 + "iPGN TF2 PUG bot. Commands available to you are: none", false);
-            this.sendMessage(newFriendId, "If you need assistance, don't hesitate to join us on IRC, "
+            sendMessage(newFriendId, "If you need assistance, don't hesitate to join us on IRC, "
                 + "#tf2pug @ irc.gamesurge.net. A simple widget is available at http://tf2pug.ipgn.com.au/irc/", false);
 
             ulong ipgnClanId = 103582791430132508;
@@ -234,8 +246,6 @@
         {
             return;
         }
-
-        ipgnBotChatParser ipgnBotParser = new ipgnBotChatParser();
 
         void chatMessage(FriendChatMsg_t chatMsg)
         {
@@ -263,9 +273,13 @@
             ipgnBotParser.MessageTime = DateTime.Now;
 
             ipgnBotParser.parseMessage(ipgnBotParser.Message);
-            if (ipgnBotParser.replyMessage != null)
-                this.sendMessage(ipgnBotParser.Sender, ipgnBotParser.replyMessage, false);
-
+            if (!ipgnPugInterface.ipgnPugInterfaceSocket.Connected)
+            {
+                sendMessage(ipgnBotParser.Sender, "The bot is currently unavailable. Try again soon", false);
+                return;
+            }
+            else if (ipgnBotParser.replyMessage != null)
+                sendMessage(ipgnBotParser.Sender, ipgnBotParser.replyMessage, false);
         }
 
         void chatRoomMessage(ChatRoomMsg_t chatRoomMsg)
@@ -298,8 +312,13 @@
 
             //Now we leave the rest to the bot (parsing, logging, etc);
             ipgnBotParser.parseMessage(ipgnBotParser.Message);
-            if (ipgnBotParser.replyMessage != null)
-                this.sendMessage(ipgnBotParser.ChatRoom, ipgnBotParser.replyMessage, true); 
+            if (!ipgnPugInterface.ipgnPugInterfaceSocket.Connected)
+            {
+                sendMessage(ipgnBotParser.ChatRoom, "The bot is currently unavailable. Try again soon", true);
+                return;
+            }
+            else if (ipgnBotParser.replyMessage != null)
+                sendMessage(ipgnBotParser.ChatRoom, ipgnBotParser.replyMessage, true); 
         }
 
         public void sendMessage(CSteamID botTarget, string botMessage, bool IsGroupMsg)
