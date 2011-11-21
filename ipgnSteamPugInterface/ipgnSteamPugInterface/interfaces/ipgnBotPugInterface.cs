@@ -5,27 +5,41 @@
     using System.Text;
     using System.Net;
     using System.Net.Sockets;
-    using System.Windows.Forms;
     using System.Threading;
+    using System.Timers;
+    using System.Windows.Forms;
+    using Steam4NET;
 
     class ipgnBotPugInterface
     {
-        Socket ipgnPugInterfaceSocket;
-        CPUGData pugStatus;
+        public Socket ipgnPugInterfaceSocket;
+        public CPUGData pugStatus;
+        System.Timers.Timer ipgnPugReconTimer;
+
+        sendState sndState;
 
         private const string ConnectionFailed = "Unable to connect to the pug bot";
         private const string ConnectionSuccess = "Connected to the pug bot";
-        private const string ConnectionClosed = "Connection closed by the pug bot, WTF?";
+        private const string ConnectionClosed = "Connection closed by remote host - could mean a server error";
 
         public bool connectedToBot;
 
         public static IPEndPoint botIPEndPoint;
         public static string botPassword;
 
+        private static ipgnBotSteamInterface ipgnSteamInterface;
+
         public ipgnBotPugInterface()
         {
             ipgnPugInterfaceSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             pugStatus = new CPUGData();
+            sndState = new sendState();
+        }
+
+        //void to handle the passing of the steam interface, so we can use it inside this object
+        public void ipgnSteamInterfacePass(ipgnBotSteamInterface interfaceHandle)
+        {
+            ipgnSteamInterface = interfaceHandle;
         }
 
         /* Socket setup and control, including reading/receiving/connecting
@@ -35,92 +49,138 @@
          * and TCP is substantially more reliable.
          */
 
-        public bool connectToPugBot(IPEndPoint pugBotAddress, string interfacePassword)
+        public void connectToPugBot(IPEndPoint pugBotAddress, string interfacePassword)
         {
+            connectState conState = new connectState();
+
             botIPEndPoint = pugBotAddress;
             botPassword = interfacePassword;
 
+            conState.botPassword = interfacePassword;
+            conState.botIPEndPoint = pugBotAddress;
+
+            if (!ipgnPugInterfaceSocket.Connected)
+                ipgnPugInterfaceSocket.BeginConnect(pugBotAddress, new AsyncCallback(connectCallback), conState);
+        }
+
+        private void connectCallback(IAsyncResult aResult)
+        {
+            connectState conState = (connectState)aResult.AsyncState;
             try
             {
-                ipgnPugInterfaceSocket.Connect(pugBotAddress);
+                ipgnPugInterfaceSocket.EndConnect(aResult);
+                onConnectionSuccess(true);
+
+                string authString = "STARTUP!" + conState.botPassword;
+
+                //send start notice to bot with password
+                sendBotCommand(authString);
+
+                if ((sndState.sendMsg != null) && (sndState.sendMsg != authString))
+                {
+                    sendBotCommand(sndState.sendMsg);
+                }
+
+                //start listening
+                receiveBotCommand();
             }
             catch (SocketException)
             {
                 onSocketError(ConnectionFailed);
-                onConnectionSuccess(false);
-                return false;
             }
-
-            onConnectionSuccess(true);
-            //ipgnPugInterfaceSocket.Blocking = false; -- we don't need non blocking, we're using async methods
-
-            //send start notice to bot with password
-            sendBotCommand("STARTUP!" + interfacePassword);
-
-            //start listening
-            receiveBotCommand();
-
-            return true;
         }
+
+        private void disconnectCallback(IAsyncResult aResult)
+        {
+            Program.logToWindow("********** Disconnected from bot. Attempting to reconnect");
+
+            connectedToBot = false;
+
+            ipgnPugReconTimer = new System.Timers.Timer();
+            ipgnPugReconTimer.Elapsed += new ElapsedEventHandler(ipgnPugInterfaceReconnect);
+            ipgnPugReconTimer.Interval = 10000;
+            ipgnPugReconTimer.Start();
+        }
+
+        private int ipgnPugConnectAttempts = 0;
 
         private void onSocketError(string error)
         {
-            //if (String.Compare(error, ConnectionClosed) == 0)
-            //    connectToPugBot(botIPEndPoint, botPassword);
-            
-            Program.logToWindow("Socket had error: " + error);
+            Program.logToWindow("********** Socket had error: " + error);
+            if (ipgnPugInterfaceSocket.Connected)
+                ipgnPugInterfaceSocket.BeginDisconnect(true, new AsyncCallback(disconnectCallback), this);
+            else
+            {
+                ipgnPugConnectAttempts++;
+                if (ipgnPugConnectAttempts > 50)
+                {
+                    MessageBox.Show("Something is dangerously wrong. Infinite loop on socket connect");
+                    Application.Exit();
+                }
+                connectToPugBot(botIPEndPoint, botPassword);
+                Program.logToWindow("********** Trying to connect. Attempt: " + ipgnPugConnectAttempts);
+            }
         }
+
         private void onConnectionSuccess(bool connected)
         {
             if (connected)
             {
-                Program.logToWindow("Successfully established socket connection to the pug bot");
+                Program.logToWindow("********** Successfully established socket connection to the pug bot");
                 connectedToBot = true;
             }
             else
             {
-                Program.logToWindow("No connection to the pug bot");
+                Program.logToWindow("********** No connection to the pug bot");
                 connectedToBot = false;
             }
         }
 
         public void sendBotCommand(string command)
         {
-            if (connectedToBot)
-            {
-                byte[] commandPacket = ASCIIEncoding.ASCII.GetBytes(command);
+            byte[] commandPacket = ASCIIEncoding.ASCII.GetBytes(command);
 
+            sndState.sendMsg = command;
+
+            if (ipgnPugInterfaceSocket.Connected)
+            {
                 ipgnPugInterfaceSocket.BeginSend(commandPacket, 0, commandPacket.Length, SocketFlags.None, new AsyncCallback(sendBotCallback), this);
             }
             else
             {
-                Program.logToWindow("Unable to send data - lost socket connection. Attempting to reconnect");
-
-                connectToPugBot(botIPEndPoint, botPassword);
-                Thread.Sleep(4000);
-                if (!connectedToBot)
-                {
-                    MessageBox.Show("Can't reconnect. Closing");
-                    Application.Exit();
-                }
-                byte[] commandPacket = ASCIIEncoding.ASCII.GetBytes(command);
-                ipgnPugInterfaceSocket.BeginSend(commandPacket, 0, commandPacket.Length, SocketFlags.None, new AsyncCallback(sendBotCallback), this);
+                Program.logToWindow("********** Unable to send data - lost socket connection. Attempting to reconnect");
+                onSocketError(ConnectionClosed);
             }
         }
 
         void sendBotCallback(IAsyncResult asyncResult)
         {
-            ipgnPugInterfaceSocket.EndSend(asyncResult);
+            try
+            {
+                ipgnPugInterfaceSocket.EndSend(asyncResult);
+                sndState.sendMsg = null;
+            }
+            catch (SocketException)
+            {
+                onSocketError(ConnectionClosed);
+            }
         }
 
         public void receiveBotCommand()
         {
-            receiveState currentState = new receiveState();
-            currentState.IsNewData = false;
-            currentState.dataReceived = new byte[256];
-            
-            ipgnPugInterfaceSocket.BeginReceive(currentState.dataReceived, 0, currentState.bufferSizeReadable, 
-                SocketFlags.None, new AsyncCallback(receiveCallback), currentState);
+            try
+            {
+                receiveState currentState = new receiveState();
+                currentState.IsNewData = false;
+                currentState.dataReceived = new byte[256];
+
+                ipgnPugInterfaceSocket.BeginReceive(currentState.dataReceived, 0, currentState.bufferSizeReadable,
+                    SocketFlags.None, new AsyncCallback(receiveCallback), currentState);
+            }
+            catch (SocketException)
+            {
+                onSocketError(ConnectionClosed);
+            }
         }
 
         void receiveCallback(IAsyncResult asyncResult)
@@ -175,7 +235,7 @@
                     receiveBotCommand(); //start listening again
                 }
             }
-            else
+            else if (currentState.bytesRead > 0)
             {
                 //Do something with the data we've got, because there's no more coming immediately
                 Program.logToWindow("Received a command or a response from the pug bot");
@@ -190,6 +250,11 @@
                 //go back to listening again
                 receiveBotCommand();
             }
+            else
+            {
+                //let's presume it was closed... because this is what happens when it's closed
+                onSocketError(ConnectionClosed);
+            }
         }
 
         /* End the socket control. Now we setup a function for processing the command send between the
@@ -199,10 +264,22 @@
          * than having the main program control both. Though this could just be due to bad implementation ;)
          */
 
+        void ipgnPugInterfaceReconnect(object source, ElapsedEventArgs e)
+        {
+            connectToPugBot(botIPEndPoint, botPassword);
+            Thread.Sleep(500);
+            if (ipgnPugInterfaceSocket.Connected)
+            {
+                ipgnPugReconTimer.Stop();
+                Program.logToWindow("********** Successfully reconnected");
+            }
+        }
 
         public void reactToBot(string botMessage, CPUGData pugStatus)
         {
             //hardcode reactions here. ie, details, endpug, start/end mapvote, fun stuff
+            //Program.ipgnSteamInterface.sendMessage("STEAM_0:1:111", "asdf", false);
+            
         }
     }
 
@@ -218,11 +295,21 @@
         public bool IsNewData;
     }
 
+    public class connectState
+    {
+        public string botPassword;
+        public IPEndPoint botIPEndPoint;
+    }
+
+    public class sendState
+    {
+        public string sendMsg;
+    }
 
     /* Our main data container for the pug bot interface. This will contain whether the pug is in progress,
      * the number of players, the players joined through steam, their steamid, map vote, etc.
      * Need to keep in mind, however, we don't want to replicate the pug bot's functions entirely, we want to
-     * emulate them
+     * emulate it
      */
     public class CPUGData 
     {
@@ -240,5 +327,6 @@
         public string serverPassword;
         public string adminLogin;
         public string[] mapVotes;
+        public string winMap;
     }
 }
