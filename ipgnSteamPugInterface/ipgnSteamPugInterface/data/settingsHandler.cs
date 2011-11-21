@@ -12,6 +12,7 @@
         public string botIP;
         public int botPort;
         public string botPassword;
+        public bool firstRun;
 
         public settingsHandler()
         {
@@ -30,7 +31,7 @@
                         if (splitStream[0] == "botIP")
                             botIP = splitStream[1];
                         else if (splitStream[0] == "botPort")
-                            botPort = splitStream[1];
+                            botPort = Convert.ToInt32(splitStream[1]);
                         else if (splitStream[0] == "botPassword")
                             botPassword = splitStream[1];
                         else
@@ -38,6 +39,7 @@
                     }
                 }
                 fileStream.Close();
+                firstRun = false;
             }
             else
             {
@@ -47,6 +49,11 @@
                 fileStream.WriteLine("botPassword=reindeer");
 
                 fileStream.Close();
+
+                botIP = "1.2.3.4";
+                botPort = 1234;
+                botPassword = "reindeer";
+                firstRun = true;
             }
         }
     }
