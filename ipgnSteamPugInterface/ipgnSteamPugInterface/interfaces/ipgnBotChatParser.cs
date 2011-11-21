@@ -8,6 +8,8 @@
 
     class ipgnBotChatParser
     {
+        CPUGData pugStatus;
+
         public bool IsGroupMsg;
 
         public CSteamID ChatRoom;
@@ -20,12 +22,20 @@
         public string ReceiverName;
 
         public string Message;
-
         public DateTime MessageTime;
-
         public EChatEntryType MessageType;
 
         public string replyMessage;
+
+        //declare handle for pug interface
+        private ipgnBotPugInterface ipgnPugInterface;
+
+        //passed from program -> steam interface -> here
+        public void ipgnPugInterfacePass(ipgnBotPugInterface interfaceHandle)
+        {
+            ipgnPugInterface = interfaceHandle;
+            pugStatus = ipgnPugInterface.pugStatus;
+        }
 
         public void parseMessage(string chatMessage)
         {
@@ -39,11 +49,19 @@
             Program.logToWindow(logMessage);
 
             if (chatMessage == "!status")
-                this.replyMessage = "Status is: no deal";
-
+            {
+                if (pugStatus.detailed)
+                {
+                    this.replyMessage = "« Waiting for the pug to start on " + ipgnPugInterface.pugStatus.winMap + "»";
+                }
+                else if (pugStatus.inProgress)
+                {
+                    this.replyMessage = "« The game is currently in progress on »";
+                }
+            }
             else if (chatMessage == "!join")
                 this.replyMessage = "You are now in the pug! (just kidding)";
-            
+
             else
                 this.replyMessage = null;
         }
