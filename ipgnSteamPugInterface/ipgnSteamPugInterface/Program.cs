@@ -6,14 +6,15 @@
     using System.IO;
     using System.Threading;
     using System.Windows.Forms;
+    using System.Globalization;
     using System.Net;
     using Steam4NET;
 
     static class Program
     {
-        public static ipgnBotSteamInterface ipgnSteamInterface;
-        public static ipgnBotPugInterface ipgnPugInterface;
-        public static settingsHandler ipgnBotSettings;
+        private static ipgnBotSteamInterface ipgnSteamInterface;
+        private static ipgnBotPugInterface ipgnPugInterface;
+        private static settingsHandler ipgnBotSettings;
 
         static mainWindow ipgnBotWindow;
 
@@ -21,15 +22,41 @@
         public static int botPort;
         public static string botInterfacePassword;
 
+        private static bool logDirMade = true;
+
         public static void logToWindow(string logString)
         {
             ipgnBotWindow.Print("[" + DateTime.Now + "] " + logString);
             logToFile(logString);
         }
 
-        public static void logToFile(string logMessage)
+        public static void logToFile(string logString)
         {
-            return;
+            string directory = Environment.CurrentDirectory + "\\logs";
+            if (!Directory.Exists(directory))
+            {
+                try
+                {
+                    Directory.CreateDirectory(directory);
+                    logToWindow("Successfully created log dir " + directory);
+                }
+                catch (UnauthorizedAccessException exception)
+                {
+                    MessageBox.Show("Logging disabled: " + exception.Message);
+                    logDirMade = false;
+                }
+            }
+
+            if (!logDirMade)
+                return;
+
+            string logDate = DateTime.Now.ToString("ddd-dd-MM-yyyy", CultureInfo.CurrentCulture);
+
+            string logFile = directory + "\\" + logDate + ".log";
+
+            string timeStamp = DateTime.Now.ToString("[HH:mm:ss] ", CultureInfo.CurrentCulture);
+
+            File.AppendAllText(logFile, timeStamp + logString + "\r\n");
         }
 
         [STAThread]
@@ -54,12 +81,34 @@
                 Application.Exit();
                 return;
             }
-            ipgnSteamInterface = new ipgnBotSteamInterface();
+
             Application.SetCompatibleTextRenderingDefault(false);
             Application.EnableVisualStyles();
 
             ipgnBotWindow = new mainWindow();
             ipgnBotWindow.Show();
+
+            ipgnBotSettings = new settingsHandler();
+
+            botIP = ipgnBotSettings.botIP;
+            botPort = ipgnBotSettings.botPort;
+            botInterfacePassword = ipgnBotSettings.botPassword;
+
+            if (ipgnBotSettings.firstRun)
+            {
+                MessageBox.Show("Default config has been created. Please edit and run the bot again");
+                Application.Exit();
+                return;
+            }
+
+            if (botInterfacePassword == "reindeer")
+            {
+                MessageBox.Show("You are currently using the default config. Please edit this and run the bot again");
+                Application.Exit();
+                return;
+            }
+
+            ipgnSteamInterface = new ipgnBotSteamInterface();
 
             bool waited = false;
 
@@ -134,35 +183,17 @@
             }
 
             //steam interface loaded, now try pug interface
-
             ipgnPugInterface = new ipgnBotPugInterface();
-            ipgnBotSettings = new settingsHandler();
 
-            botIP = ipgnBotSettings.botIP;
-            botPort = ipgnBotSettings.botPort;
-            botInterfacePassword = ipgnBotSettings.botPassword;
+            /* Here we pass the object handles for each interface to one another, so they can each be used
+             * inside one another. This is a slightly cleaner way than using public statics (though our objects
+             * are exactly that), because it allows us to reference the object directly inside the other object
+             * rather than calling from the main program
+             */ 
+            ipgnPugInterface.ipgnSteamInterfacePass(ipgnSteamInterface);
+            ipgnSteamInterface.ipgnPugInterfacePass(ipgnPugInterface);
 
-            if (ipgnPugInterface.connectToPugBot(new IPEndPoint(IPAddress.Parse(botIP), botPort), botInterfacePassword))
-            {
-                Program.logToWindow("We're inside the initial connection check");
-                int i = 0;
-                while (!ipgnPugInterface.connectedToBot)
-                {
-                    if (i > 20)
-                        break;
-                    Application.DoEvents();
-                    Thread.Sleep(10);
-                    i++;
-                }
-            }
-
-            if (!ipgnPugInterface.connectedToBot)
-            {
-                MessageBox.Show("No socket. Exiting");
-
-                Application.Exit();
-                return;
-            }
+            ipgnPugInterface.connectToPugBot(new IPEndPoint(IPAddress.Parse(botIP), botPort), botInterfacePassword);
 
             while (firstProcess)
             {
