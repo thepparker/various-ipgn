@@ -37,33 +37,61 @@
             pugStatus = ipgnPugInterface.pugStatus;
         }
 
-        public void parseMessage(string chatMessage)
+        public void parseMessage(string msg)
         {
             string logMessage;
-
+            
             if (this.IsGroupMsg)
-                logMessage = (this.SenderName + " (" + this.ChatRoomName + "): " + chatMessage);
+                logMessage = (this.SenderName + " (" + this.ChatRoomName + "): " + msg);
             else
-                logMessage = (this.SenderName + " (PRIVATE): " + chatMessage);
+                logMessage = (this.SenderName + " (PRIVATE): " + msg);
 
             Program.logToWindow(logMessage);
 
-            if (chatMessage == "!status")
+            if (msg == "!status")
             {
                 if (pugStatus.detailed)
                 {
-                    this.replyMessage = "« Waiting for the pug to start on " + ipgnPugInterface.pugStatus.winMap + "»";
+                    this.replyMessage = "Waiting for the pug to start on " + pugStatus.winMap;
                 }
                 else if (pugStatus.inProgress)
                 {
-                    this.replyMessage = "« The game is currently in progress on »";
+                    this.replyMessage = "The game is currently in progress on " + pugStatus.winMap + ". Approximately <timer> timeleft. Scores: Red: "
+                        + pugStatus.redScore + " Blue: " + pugStatus.blueScore;
                 }
+                else if (pugStatus.lookingForPlayers)
+                {
+                    this.replyMessage = "Currently looking for more players " + slotsRemaining();
+                }
+                else if (pugStatus.mapVoting)
+                {
+                    this.replyMessage = "Currently in map voting";
+                }
+                else
+                    this.replyMessage = "No pug in progress. Type !pug to start one";
             }
-            else if (chatMessage == "!join")
+            else if ((msg == "!join") || (msg == "!j") || (msg == "!add"))
+            {
                 this.replyMessage = "You are now in the pug! (just kidding)";
+            }
+            else if ((msg == "!leave"))
+            {
 
+            }
             else
+            {
                 this.replyMessage = null;
+            }
+        }
+
+        public string chatFormat(string msg)
+        {
+            return "« " + msg + " »";
+        }
+
+        public string slotsRemaining()
+        {
+            return "(" + (pugStatus.maxPlayers - pugStatus.numPlayers) + "/" + pugStatus.maxPlayers + " slots remaining)";
         }
     }
 }

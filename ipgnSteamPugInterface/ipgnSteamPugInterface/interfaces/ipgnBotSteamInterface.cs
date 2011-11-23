@@ -268,7 +268,7 @@
             ipgnBotParser.ReceiverName = steamFriends.GetFriendPersonaName(ipgnBotParser.Receiver);
 
             ipgnBotParser.Message = Encoding.UTF8.GetString(msgData, 0, len);
-            ipgnBotParser.Message = ipgnBotParser.Message.Substring(0, ipgnBotParser.Message.Length - 1);
+            ipgnBotParser.Message = ipgnBotParser.Message.Substring(0, ipgnBotParser.Message.Length - 1).ToLower();
             ipgnBotParser.MessageType = chatType;
             ipgnBotParser.MessageTime = DateTime.Now;
 
@@ -306,7 +306,7 @@
             ipgnBotParser.ReceiverName = ipgnBotParser.SenderName;
 
             ipgnBotParser.Message = Encoding.UTF8.GetString(msgData, 0, len);
-            ipgnBotParser.Message = ipgnBotParser.Message.Substring(0, ipgnBotParser.Message.Length - 1);
+            ipgnBotParser.Message = ipgnBotParser.Message.Substring(0, ipgnBotParser.Message.Length - 1).ToLower();
             ipgnBotParser.MessageType = chatType;
             ipgnBotParser.MessageTime = DateTime.Now;
 
@@ -323,6 +323,8 @@
 
         public void sendMessage(CSteamID botTarget, string botMessage, bool IsGroupMsg)
         {
+            botMessage = ipgnBotParser.chatFormat(botMessage);
+
             if (IsGroupMsg)
             {
                 sendChatMsg(clientFriends.Interface, botTarget, ipgnBotParser.MessageType, System.Text.Encoding.UTF8.GetBytes(botMessage), botMessage.Length + 1);

@@ -317,10 +317,14 @@
         public bool inProgress;
         public bool mapVoting;
         public bool detailed;
+        public bool lookingForPlayers;
 
         //ints
         public int numPlayers;
         public int serverPort;
+        public int redScore;
+        public int blueScore;
+        public int maxPlayers;
 
         //strings
         public string serverIP;
