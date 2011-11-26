@@ -257,16 +257,9 @@
             }
         }
 
-        /* End the socket control. Now we setup a function for processing the command send between the
-         * bots. The main program will need to be included in this control somehow, because it controls both
-         * the steam interface and the pug interface, and we need both for this bot to function properly.
-         * I think perhaps it may be better to initialize the socket inside the steam interface class, rather
-         * than having the main program control both. Though this could just be due to bad implementation ;)
-         */
-
         void ipgnPugInterfaceReconnect(object source, ElapsedEventArgs e)
         {
-            connectToPugBot(botIPEndPoint, botPassword);
+            this.connectToPugBot(botIPEndPoint, botPassword);
             Thread.Sleep(500);
             if (ipgnPugInterfaceSocket.Connected)
             {
@@ -275,15 +268,82 @@
             }
         }
 
+        /* End the socket control. Now we setup a function for processing the command send between the
+        * bots. The main program will need to be included in this control somehow, because it controls both
+        * the steam interface and the pug interface, and we need both for this bot to function properly.
+        * I think perhaps it may be better to initialize the socket inside the steam interface class, rather
+        * than having the main program control both. Though this could just be due to bad implementation ;)
+        */
+
         public void reactToBot(string botMessage, CPUGData pugStatus)
         {
             //hardcode reactions here. ie, details, endpug, start/end mapvote, fun stuff
             //Program.ipgnSteamInterface.sendMessage("STEAM_0:1:111", "asdf", false);
-            
+        }
+
+        public bool addPlayer(CSteamID steamID, string name)
+        {
+            for (int i = 0; i < pugStatus.players.GetLength(0); i++)
+            {
+                if (pugStatus.players[i, 0] == null)
+                {
+                    pugStatus.players[i, 0] = steamID.ToString();
+                    pugStatus.players[i, 1] = name;
+
+                    Program.logToFile("Added " + name + " (" + steamID + ") to the pug");
+
+                    this.sendBotCommand("ADDPLAYER!" + name + "@" + steamID.ToString());
+
+                    pugStatus.numPlayers += 1;
+
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool removePlayer(CSteamID steamID)
+        {
+            int playerIndex = GetPlayerIndex(steamID);
+
+            if (playerIndex >= 0)
+            {
+                //player is in the pug
+                string name = pugStatus.players[playerIndex, 1];
+
+                pugStatus.players[playerIndex, 0] = null;
+                pugStatus.players[playerIndex, 1] = null;
+
+                Program.logToFile("Removed " + name + " (" + steamID + ") from the pug");
+
+                this.sendBotCommand("REMOVEPLAYER!" + name + "@" + steamID.ToString());
+
+                pugStatus.numPlayers -= 1;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public int GetPlayerIndex(CSteamID steamID)
+        {
+            for (int i = 0; i < pugStatus.players.GetLength(0); i++)
+            {
+                Program.logToWindow("Checking row " + i + " for SteamID " + steamID.ToString() + ". Array values: ID: \n"
+                    + pugStatus.players[i, 0] + " Name: " + pugStatus.players[i, 1]);
+
+                if (pugStatus.players[i, 0] == steamID.ToString())
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
     }
 
-    //This acts as a data pack, which we pass through the receiveCallback and the incomingData processor numerous times
+    //This acts as a data pack, which we pass through the receiveCallback and the incoming data processor numerous times
     public class receiveState
     {
         public const int bufferSize = 256;
@@ -318,19 +378,24 @@
         public bool mapVoting;
         public bool detailed;
         public bool lookingForPlayers;
+        public bool isPug = true;
 
         //ints
-        public int numPlayers;
+        public int numPlayers = 0;
         public int serverPort;
         public int redScore;
         public int blueScore;
-        public int maxPlayers;
+        public int maxPlayers = 12;
 
         //strings
         public string serverIP;
         public string serverPassword;
         public string adminLogin;
-        public string[] mapVotes;
         public string winMap;
+        public string ircplayers;
+
+        //arrays
+        public string[,] mapVotes = new string[12, 2];
+        public string[,] players = new string[12, 2];
     }
 }
