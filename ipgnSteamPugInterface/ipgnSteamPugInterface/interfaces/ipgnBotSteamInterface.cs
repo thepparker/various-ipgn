@@ -319,7 +319,7 @@
             ipgnBotParser.MessageType = chatType;
             ipgnBotParser.MessageTime = DateTime.Now;
 
-            //Now we leave the rest to the bot (parsing, logging, etc);
+            //Now we leave the rest to the bot (parsing, logging, etc)
             if (!ipgnPugInterface.ipgnPugInterfaceSocket.Connected)
             {
                 this.sendMessage(ipgnBotParser.ChatRoom, "The bot is currently unavailable. Try again soon", true);

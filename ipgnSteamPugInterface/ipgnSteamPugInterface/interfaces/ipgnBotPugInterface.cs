@@ -359,7 +359,7 @@
         private void endPug()
         {
             //ipgn group chat id is groupchat110338190871188252
-            //103582791430132508 - clan ID
+            //103582791430132508 - clan Id
 
             ipgnSteamInterface.sendMessage(pugStatus.ipgnClanChatId, "Pug ended", true);
 
