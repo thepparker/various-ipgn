@@ -39,7 +39,7 @@
 
         public void parseMessage(string msg)
         {
-            /*string logMessage;
+            string logMessage;
             
             if (this.IsGroupMsg)
                 logMessage = (this.SenderName + " (" + this.ChatRoomName + "): " + msg);
@@ -47,16 +47,18 @@
                 logMessage = (this.SenderName + " (PRIVATE): " + msg);
 
             Program.logToWindow(logMessage);
-            */
+            
 
-            if (msg == "!status")
+            string[] msgtok = msg.Split(' ');
+
+            if (msgtok[0] == "!status")
             {
                 if (!pugStatus.isPug)
                 {
                     this.replyMessage = "No pug in progress. Type !pug to start one";
                     return;
                 }
-                
+
                 if (pugStatus.detailed)
                 {
                     this.replyMessage = "Waiting for the pug to start on " + pugStatus.winMap;
@@ -74,36 +76,38 @@
                 {
                     this.replyMessage = "Currently in map voting";
                 }
+                else
+                    this.replyMessage = "Unknown status";
             }
-            else if ((msg == "!join") || (msg == "!j") || (msg == "!add"))
+            else if ((msgtok[0] == "!join") || (msgtok[0] == "!j") || (msgtok[0] == "!add"))
             {
                 if (pugStatus.isPug)
                 {
-                    int playerIndex = ipgnPugInterface.GetPlayerIndex(this.Sender);
-
-                    if (playerIndex >= 0)
-                    {
-                        if (this.IsGroupMsg)
-                            this.replyMessage = this.SenderName + " is already in the pug";
-                        else
-                            this.replyMessage = "You are already in the pug";
-                    }
-                    else if (pugStatus.inProgress || pugStatus.detailed || pugStatus.mapVoting)
+                    if (pugStatus.inProgress || pugStatus.detailed || pugStatus.mapVoting)
                     {
                         this.replyMessage = "There is already a pug in progress. Please wait for the next one";
                     }
                     else
                     {
-                        if (ipgnPugInterface.addPlayer(this.Sender, this.SenderName))
+                        int addPlayerResult = ipgnPugInterface.addPlayer(this.Sender, this.SenderName);
+
+                        if (addPlayerResult == 1)
                         {
                             if (this.IsGroupMsg)
                                 this.replyMessage = this.SenderName + " has been added to the pug. " + slotsRemaining();
                             else
                                 this.replyMessage = "You have been added to the pug. " + slotsRemaining();
                         }
+                        else if (addPlayerResult == 2)
+                        {
+                            if (this.IsGroupMsg)
+                                this.replyMessage = this.SenderName + " is already in the pug. " + slotsRemaining();
+                            else
+                                this.replyMessage = "You are already in the pug";
+                        }
                         else
                         {
-                            this.replyMessage = "Unable to add you to the pug";
+                            this.replyMessage = "An unknown error occurred. Unable to add you to the pug";
                         }
                     }
                 }
@@ -114,7 +118,7 @@
 
                 return;
             }
-            else if ((msg == "!leave") || (msg == "!l"))
+            else if ((msgtok[0] == "!leave") || (msgtok[0] == "!l"))
             {
                 if (pugStatus.inProgress || pugStatus.detailed || pugStatus.mapVoting)
                 {
@@ -128,20 +132,44 @@
                     }
                     else
                     {
-                        this.replyMessage = "ERROR: Unable to remove " + this.SenderName + " from the pug.";
+                        if (this.IsGroupMsg)
+                            this.replyMessage = "ERROR: " + this.SenderName + " is not in the pug.";
+                        else
+                            this.replyMessage = "You are not in the pug.";
                     }
                 }
                 return;
             }
-            else if (msg == "!map")
+            else if (msgtok[0] == "!map")
+            {
+                if (!pugStatus.isPug)
+                {
+                    this.replyMessage = "No pug in progress. Type !pug to start one";
+                }
+                else if (pugStatus.mapVoting)
+                {
+                    int addMapVote = ipgnPugInterface.addMapVote(this.Sender, msgtok[1]);
+
+                    if (addMapVote == 1)
+                    {
+
+                    }
+                    else if (addMapVote == 2)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+                return;
+            }
+            else if (msgtok[0] == "!details")
             {
                 return;
             }
-            else if (msg == "!details")
-            {
-                return;
-            }
-            else if (msg == "!players")
+            else if (msgtok[0] == "!players")
             {
                 if (pugStatus.isPug)
                     this.replyMessage = currentPlayers();

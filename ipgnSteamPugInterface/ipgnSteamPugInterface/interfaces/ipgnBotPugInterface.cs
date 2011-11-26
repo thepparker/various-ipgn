@@ -281,8 +281,16 @@
             //Program.ipgnSteamInterface.sendMessage("STEAM_0:1:111", "asdf", false);
         }
 
-        public bool addPlayer(CSteamID steamID, string name)
+        public int addPlayer(CSteamID steamID, string name)
         {
+            int playerIndex = GetPlayerIndex(steamID);
+
+            if (playerIndex >= 0)
+            {
+                //already in the pug
+                return 2; //status code 2 indicates this
+            }
+
             for (int i = 0; i < pugStatus.players.GetLength(0); i++)
             {
                 if (pugStatus.players[i, 0] == null)
@@ -296,10 +304,11 @@
 
                     pugStatus.numPlayers += 1;
 
-                    return true;
+                    return 1;
                 }
             }
-            return false;
+            
+            return 0;
         }
 
         public bool removePlayer(CSteamID steamID)
@@ -326,6 +335,11 @@
             return false;
         }
 
+        public int addMapVote(CSteamID steamID, string map)
+        {
+            return 0;
+        }
+
         public int GetPlayerIndex(CSteamID steamID)
         {
             for (int i = 0; i < pugStatus.players.GetLength(0); i++)
@@ -340,6 +354,15 @@
             }
 
             return -1;
+        }
+
+        private void endPug()
+        {
+            //ipgn group chat id is groupchat110338190871188252
+            //103582791430132508 - clan ID
+
+            ipgnSteamInterface.sendMessage(pugStatus.ipgnClanChatId, "Pug ended", true);
+
         }
     }
 
@@ -373,6 +396,8 @@
      */
     public class CPUGData 
     {
+        public CSteamID ipgnClanChatId;
+
         //bools
         public bool inProgress;
         public bool mapVoting;

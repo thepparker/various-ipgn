@@ -272,14 +272,15 @@
             ipgnBotParser.MessageType = chatType;
             ipgnBotParser.MessageTime = DateTime.Now;
 
-            ipgnBotParser.parseMessage(ipgnBotParser.Message);
             if (!ipgnPugInterface.ipgnPugInterfaceSocket.Connected)
             {
-                sendMessage(ipgnBotParser.Sender, "The bot is currently unavailable. Try again soon", false);
+                this.sendMessage(ipgnBotParser.Sender, "The bot is currently unavailable. Try again soon", false);
                 return;
             }
-            else if (ipgnBotParser.replyMessage != null)
-                sendMessage(ipgnBotParser.Sender, ipgnBotParser.replyMessage, false);
+
+            ipgnBotParser.parseMessage(ipgnBotParser.Message);
+            if (ipgnBotParser.replyMessage != null)
+                this.sendMessage(ipgnBotParser.Sender, ipgnBotParser.replyMessage, false);
         }
 
         void chatRoomMessage(ChatRoomMsg_t chatRoomMsg)
@@ -293,11 +294,19 @@
 
             int len = getChatMsg(clientFriends.Interface, chatRoomMsg.m_ulSteamIDChat,(int)chatRoomMsg.m_iChatID, ref chatter, msgData, msgData.Length, ref chatType);
 
-            len = Clamp(len, 1, msgData.Length);
+            len = this.Clamp(len, 1, msgData.Length);
+
+            string chatRoomName = getChatName(clientFriends.Interface, ipgnBotParser.ChatRoom);
+
+            if (chatRoomName.ToLower() == "ipgn")
+            {
+                ipgnPugInterface.pugStatus.ipgnClanChatId = chatRoomMsg.m_ulSteamIDChat;
+            }
+
 
             ipgnBotParser.IsGroupMsg = true;
             ipgnBotParser.ChatRoom = chatRoomMsg.m_ulSteamIDChat;
-            ipgnBotParser.ChatRoomName = getChatName(clientFriends.Interface, ipgnBotParser.ChatRoom);
+            ipgnBotParser.ChatRoomName = chatRoomName;
 
             ipgnBotParser.Sender = new CSteamID(chatRoomMsg.m_ulSteamIDUser);
             ipgnBotParser.SenderName = steamFriends.GetFriendPersonaName(ipgnBotParser.Sender);
@@ -311,14 +320,15 @@
             ipgnBotParser.MessageTime = DateTime.Now;
 
             //Now we leave the rest to the bot (parsing, logging, etc);
-            ipgnBotParser.parseMessage(ipgnBotParser.Message);
             if (!ipgnPugInterface.ipgnPugInterfaceSocket.Connected)
             {
-                sendMessage(ipgnBotParser.ChatRoom, "The bot is currently unavailable. Try again soon", true);
+                this.sendMessage(ipgnBotParser.ChatRoom, "The bot is currently unavailable. Try again soon", true);
                 return;
             }
-            else if (ipgnBotParser.replyMessage != null)
-                sendMessage(ipgnBotParser.ChatRoom, ipgnBotParser.replyMessage, true); 
+
+            ipgnBotParser.parseMessage(ipgnBotParser.Message);
+            if (ipgnBotParser.replyMessage != null)
+                this.sendMessage(ipgnBotParser.ChatRoom, ipgnBotParser.replyMessage, true); 
         }
 
         public void sendMessage(CSteamID botTarget, string botMessage, bool IsGroupMsg)
@@ -327,14 +337,16 @@
 
             if (IsGroupMsg)
             {
-                sendChatMsg(clientFriends.Interface, botTarget, ipgnBotParser.MessageType, System.Text.Encoding.UTF8.GetBytes(botMessage), botMessage.Length + 1);
-                Program.logToWindow("Sent message to groupchat" + botTarget + ": " + botMessage + " (Type: " + ipgnBotParser.MessageType + ")");
+                this.sendChatMsg(clientFriends.Interface, botTarget, EChatEntryType.k_EChatEntryTypeChatMsg, System.Text.Encoding.UTF8.GetBytes(botMessage), botMessage.Length + 1);
+                Program.logToWindow("Sent message to groupchat" + botTarget + ": " + botMessage + " (Type: " + EChatEntryType.k_EChatEntryTypeChatMsg + ")");
             }
             else
             {
-                steamFriends.SendMsgToFriend(botTarget, EChatEntryType.k_EChatEntryTypeChatMsg, System.Text.Encoding.UTF8.GetBytes(botMessage), botMessage.Length + 1);
+                this.steamFriends.SendMsgToFriend(botTarget, EChatEntryType.k_EChatEntryTypeChatMsg, System.Text.Encoding.UTF8.GetBytes(botMessage), botMessage.Length + 1);
                 Program.logToWindow("Sent private message to " + botTarget + ": " + botMessage + " (Type: " + EChatEntryType.k_EChatEntryTypeChatMsg + ")");
             }
+
+            ipgnBotParser.replyMessage = null;
         }
     }
 }
