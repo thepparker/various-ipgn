@@ -10,7 +10,7 @@
     using Steam4NET;
 
 
-    // Handling messages for group chat involves using a Virtual Table to call the functions.
+    //setup pointers for virtual table to be used to handle group chats
     [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
     delegate Int32 NativeGetChatRoomEntry(IntPtr thisobj, UInt64 steamIDchat, Int32 iChatID, ref UInt64 steamIDuser, byte[] pvData, Int32 cubData, ref EChatEntryType peChatEntryType);
 
@@ -33,7 +33,7 @@
         IClientEngine clientEngine;
         IClientFriends clientFriends;
         ISteamClient008 steamClient;
-        ISteamFriends002 steamFriends;
+        public ISteamFriends002 steamFriends;
 
         //class declarations
         private ipgnBotPugInterface ipgnPugInterface;
@@ -260,7 +260,7 @@
             len = Clamp(len, 1, msgData.Length);
 
             ipgnBotParser.IsGroupMsg = false;
-
+            
             ipgnBotParser.Sender = new CSteamID(chatMsg.m_ulSender);
             ipgnBotParser.SenderName = steamFriends.GetFriendPersonaName(ipgnBotParser.Sender);
 
