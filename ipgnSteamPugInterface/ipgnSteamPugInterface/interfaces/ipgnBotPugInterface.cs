@@ -138,6 +138,12 @@
 
         public void sendBotCommand(string command)
         {
+            if (!pugStatus.authed)
+            {
+                Program.logToWindow("Unable to send command - not authenticated with bot. Check password");
+                return;
+            }
+
             byte[] commandPacket = ASCIIEncoding.ASCII.GetBytes(command);
 
             sndState.sendMsg = command;
@@ -231,7 +237,7 @@
                         SocketFlags.None, new AsyncCallback(receiveCallback), currentState);
                 else
                 {
-                    reactToBot(currentMessage, pugStatus);
+                    reactToBot(currentMessage);
                     receiveBotCommand(); //start listening again
                 }
             }
@@ -245,8 +251,8 @@
                 Program.logToWindow("Received data: " + receivedMessage);
 
                 //parse this command and react, sending the current status object with it
-                reactToBot(receivedMessage, pugStatus);
-
+                reactToBot(receivedMessage);
+                
                 //go back to listening again
                 receiveBotCommand();
             }
@@ -268,17 +274,95 @@
             }
         }
 
-        /* End the socket control. Now we setup a function for processing the command send between the
-        * bots. The main program will need to be included in this control somehow, because it controls both
-        * the steam interface and the pug interface, and we need both for this bot to function properly.
-        * I think perhaps it may be better to initialize the socket inside the steam interface class, rather
-        * than having the main program control both. Though this could just be due to bad implementation ;)
+        /* End the socket control. Now we setup a function for processing the commands sent between the
+        * bots.
         */
 
-        public void reactToBot(string botMessage, CPUGData pugStatus)
+        public void reactToBot(string botMessage)
         {
             //hardcode reactions here. ie, details, endpug, start/end mapvote, fun stuff
             //Program.ipgnSteamInterface.sendMessage("STEAM_0:1:111", "asdf", false);
+
+            if (botMessage.Contains("403"))
+            {
+                pugStatus.authed = false;
+            }
+
+            string[] botMessageSplit = botMessage.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string data in botMessageSplit)
+            {
+                if (data == null)
+                    continue;
+
+                Program.logToWindow("Processing command " + data);
+
+                string[] comtok = data.Split('%');
+
+                if (comtok[0] == "MAXPLAYERS")
+                {
+                    pugStatus.maxPlayers = Convert.ToInt32(comtok[1]);
+                }
+                else if (comtok[0] == "SERVERIP")
+                {
+                    pugStatus.serverIP = comtok[1];
+                }
+                else if (comtok[0] == "SERVERPORT")
+                {
+                    pugStatus.serverPort = Convert.ToInt32(comtok[1]);
+                }
+                else if (comtok[0] == "MAPS")
+                {
+                    pugStatus.mapList = comtok[1];
+                }
+                else if (comtok[0] == "PUG")
+                {
+                    pugStatus.isPug = Convert.ToBoolean(comtok[1]);
+                }
+                else if (comtok[0] == "DETAILED")
+                {
+                    pugStatus.detailed = Convert.ToBoolean(comtok[1]);
+                }
+                else if (comtok[0] == "MAPVOTING")
+                {
+                    pugStatus.mapVoting = Convert.ToBoolean(comtok[1]);
+                }
+                else if (comtok[0] == "GATHERING")
+                {
+                    pugStatus.lookingForPlayers = Convert.ToBoolean(comtok[1]);
+                }
+                else if (comtok[0] == "PLAYERS")
+                {
+                    pugStatus.ircplayers = comtok[1];
+                }
+                else if (comtok[0] == "NUMPLAYERS")
+                {
+                    pugStatus.numPlayers = Convert.ToInt32(comtok[1]);
+                }
+                else if (comtok[0] == "WINMAP")
+                {
+                    pugStatus.winMap = comtok[1];
+                }
+                else if (comtok[0] == "REDSCORE")
+                {
+                    pugStatus.redScore = Convert.ToInt32(comtok[1]);
+                }
+                else if (comtok[0] == "BLUESCORE")
+                {
+                    pugStatus.blueScore = Convert.ToInt32(comtok[1]);
+                }
+                else if (comtok[0] == "INPROGRESS")
+                {
+                    pugStatus.inProgress = Convert.ToBoolean(comtok[1]);
+                }
+                else if (comtok[0] == "SERVERPASS")
+                {
+                    pugStatus.serverPassword = comtok[1];
+                }
+                else
+                {
+                }
+            }
         }
 
         public int addPlayer(CSteamID steamID, string name)
@@ -300,7 +384,7 @@
 
                     Program.logToFile("Added " + name + " (" + steamID + ") to the pug");
 
-                    this.sendBotCommand("ADDPLAYER!" + name + "@" + steamID.ToString());
+                    this.sendBotCommand("ADDPLAYER!" + name + "!" + steamID.ToString());
 
                     pugStatus.numPlayers += 1;
 
@@ -325,7 +409,7 @@
 
                 Program.logToFile("Removed " + name + " (" + steamID + ") from the pug");
 
-                this.sendBotCommand("REMOVEPLAYER!" + name + "@" + steamID.ToString());
+                this.sendBotCommand("REMOVEPLAYER!" + name + "!" + steamID.ToString());
 
                 pugStatus.numPlayers -= 1;
 
@@ -403,14 +487,15 @@
         public bool mapVoting;
         public bool detailed;
         public bool lookingForPlayers;
-        public bool isPug = true;
+        public bool isPug;
+        public bool authed = true;
 
         //ints
-        public int numPlayers = 0;
+        public int numPlayers;
         public int serverPort;
         public int redScore;
         public int blueScore;
-        public int maxPlayers = 12;
+        public int maxPlayers;
 
         //strings
         public string serverIP;
@@ -418,9 +503,10 @@
         public string adminLogin;
         public string winMap;
         public string ircplayers;
+        public string mapList;
 
         //arrays
-        public string[,] mapVotes = new string[12, 2];
-        public string[,] players = new string[12, 2];
+        public string[,] mapVotes = new string[12, 2]; //12 players max, 0 contains steamid, 1 map voted for
+        public string[,] players = new string[12, 2]; //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^, 1 player name
     }
 }
