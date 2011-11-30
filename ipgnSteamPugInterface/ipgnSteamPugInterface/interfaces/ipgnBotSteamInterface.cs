@@ -296,13 +296,13 @@
 
             len = this.Clamp(len, 1, msgData.Length);
 
-            string chatRoomName = getChatName(clientFriends.Interface, ipgnBotParser.ChatRoom);
+            string chatRoomName = getChatName(clientFriends.Interface, chatRoomMsg.m_ulSteamIDChat);
 
             if (chatRoomName.ToLower() == "ipgn")
             {
                 ipgnPugInterface.pugStatus.ipgnClanChatId = chatRoomMsg.m_ulSteamIDChat;
+                Program.logToWindow("ipgn clan id: " + ipgnPugInterface.pugStatus.ipgnClanChatId);
             }
-
 
             ipgnBotParser.IsGroupMsg = true;
             ipgnBotParser.ChatRoom = chatRoomMsg.m_ulSteamIDChat;

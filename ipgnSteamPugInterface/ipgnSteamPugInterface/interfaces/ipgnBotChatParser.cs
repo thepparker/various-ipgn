@@ -59,7 +59,7 @@
                     return;
                 }
 
-                if (pugStatus.detailed)
+                if (pugStatus.detailed && !pugStatus.inProgress)
                 {
                     this.replyMessage = "Waiting for the pug to start on " + pugStatus.winMap;
                 }
@@ -186,7 +186,7 @@
 
         public string chatFormat(string msg)
         {
-            return "<< " + msg + " >>";
+            return "/ " + msg + " /";
         }
 
         public string slotsRemaining()
