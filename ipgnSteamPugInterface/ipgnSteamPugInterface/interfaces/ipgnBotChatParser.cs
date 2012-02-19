@@ -164,6 +164,10 @@
 
                     }
                 }
+                else
+                {
+                    this.replyMessage = "Map voting has finished";
+                }
                 return;
             }
             else if (msgtok[0] == "!details")

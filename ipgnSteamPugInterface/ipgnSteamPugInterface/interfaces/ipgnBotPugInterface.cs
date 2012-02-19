@@ -421,6 +421,7 @@
 
         public int addMapVote(CSteamID steamID, string map)
         {
+            //Return 1 if successful, 2 if not in pug, 0 if already voted for
             return 0;
         }
 
